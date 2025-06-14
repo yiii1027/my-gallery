@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>翻頁動畫</title>
+  <style>
+    body {
+      margin: 0;
+      background: #222;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .book {
+      position: relative;
+      display: flex;
+      width: 960px;
+      min-width: unset;
+      max-width: unset;
+      height: 600px;
+      perspective: 2000px;
+      overflow: hidden;
+      gap: 0px;
+      margin: 0 auto;
+    }
+
+    .page.left,
+    .page.right {
+      box-shadow: inset 0 0 32px -16px rgba(0,0,0,0.22), 0 2px 16px 0 rgba(0,0,0,0.10);
+      height: 100%;
+      width: 50%;
+      box-sizing: border-box;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
+      flex-grow: 0;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .page {
+      position: relative;
+      transition: transform 1s ease;
+      /* 柔和的中間陰影與立體感 */
+      /* 左頁在右側產生向內漸層陰影，右頁在左側產生向內漸層陰影 */
+    }
+
+    .page.left {
+    }
+    .page.right {
+    }
+
+    .left, .right {
+      padding: 20px;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: auto auto;
+      gap: 16px;
+      width: 100%;
+      justify-items: center;
+      align-items: center;
+    }
+
+    .stamp-card {
+      width: 90%;
+      max-width: 300px;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    .like-container {
+      margin-top: 4px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      color: #444;
+      width: 100%;
+      padding-right: 8px;
+    }
+
+    .message-box {
+      margin-top: 8px;
+      padding: 6px 10px;
+      background-color: rgba(255, 255, 255, 0.6);
+      border-radius: 8px;
+      max-height: 32px;
+      overflow-y: auto;
+      font-size: 12px;
+      line-height: 1.4;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      white-space: nowrap;
+      overflow-x: auto;
+    }
+
+    .message-box p {
+      margin: 4px 0;
+      display: inline;
+      margin-right: 12px;
+    }
+
+    .message-input-area {
+      margin-top: 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .message-input-area textarea {
+      resize: none;
+      height: 20px;
+      padding: 5px;
+      border: none;
+      background: none;
+      outline: none;
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+      color: #222;
+      box-shadow: none;
+    }
+
+    .message-input-area button {
+      margin-top: 0px;
+      padding: 4px 10px;
+      border: none;
+      background-color: #888888;
+      color: white;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .message-input-area button:hover {
+      background-color: #666666;
+    }
+
+    .like-count {
+      font-family: "Arial", "Helvetica", "黑體-繁", sans-serif;
+      position: relative;
+      top: 1.5px;
+    }
+
+    .like-btn {
+      background: none;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 2px 4px;
+      user-select: none;
+    }
+
+    .heart-icon {
+      width: 14px;
+      height: 14px;
+      vertical-align: middle;
+    }
+
+    .stamped {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .left {
+      z-index: 1;
+    }
+
+    .right {
+      transform-origin: left;
+      z-index: 2;
+    }
+
+    .right.flipped {
+      transform: rotateY(-180deg);
+      z-index: 0;
+    }
+
+    .btn {
+      position: absolute;
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: bold;
+      color: black;
+      border-radius: 8px;
+      user-select: none;
+      z-index: 10;
+      box-shadow: none;
+      display: block;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 1);
+    }
+
+    .left-btn {
+      position: absolute;
+      left: 25%;
+      bottom: 40px;
+      transform: translateX(-50%);
+      background: none;
+      border: none;
+      color: rgb(160, 0, 0);
+      font-weight: bold;
+      font-size: 14px;
+      border-radius: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .right-btn {
+      position: absolute;
+      left: 75%;
+      bottom: 40px;
+      transform: translateX(-50%);
+      background: none;
+      border: none;
+      color: rgb(159, 0, 0);
+      font-weight: bold;
+      font-size: 14px;
+      border-radius: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .left-btn .arrow,
+    .right-btn .arrow {
+      font-size: 18px;
+      line-height: 1;
+    }
+    .headline {
+      position: absolute;
+      top: 24px;
+      left: 12px;
+      font-size: 7px;
+      font-weight: bold;
+      font-family: "Arial", "Helvetica", "黑體-繁", sans-serif;
+      color: black;
+      z-index: 5;
+      letter-spacing: 0.5px;
+      pointer-events: none;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+    }
+    .headline-icon {
+      height: 14px;
+      vertical-align: baseline;
+      display: inline-block;
+    }
+    .headline-icon.right {
+      height: 10px;
+      margin-left: 16px;
+    }
+    .headline-icon.left {
+      height: 20px;
+    }
+    .corner-icon {
+      position: absolute;
+      bottom: 40px;
+      left: 40px;
+      height: 52px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .center-bottom-icon {
+      position: absolute;
+      bottom: 40px;
+      left: 40px;
+      height: 28px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .logo-stamped {
+      position: absolute;
+      bottom: 40px;
+      right: 40px;
+      height: 22px;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        display: block;
+        height: auto;
+        background: #222;
+        overflow-x: hidden;
+      }
+
+      .book {
+        display: none;
+      }
+
+      #mobile-container {
+        display: block;
+      }
+
+      .page.left,
+      .page.right,
+      #mobile-container {
+        width: 100%;
+        padding: 0;
+        background: none;
+      }
+
+      .grid-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        row-gap: 12px;
+        padding: 24px 16px;
+        margin: 0;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .stamp-card {
+        width: 90%;
+        max-width: 300px;
+        border-radius: 12px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        background: rgba(255, 255, 255, 0.9);
+      }
+
+      .stamped {
+        width: 100%;
+        height: auto;
+        object-fit: cover;
+        border-radius: 0;
+      }
+
+      .like-container {
+        justify-content: flex-start;
+        padding-left: 12px;
+      }
+
+      .corner-icon,
+      .center-bottom-icon,
+      .logo-stamped,
+      .headline {
+        display: none !important;
+      }
+
+    }
+    @media (min-width: 769px) {
+      .book {
+        display: flex;
+      }
+      #mobile-container {
+        display: none;
+      }
+    }
+
+    /* 隱藏所有 checkbox 元件 */
+    input[type="checkbox"] {
+      display: none !important;
+    }
+    .card-wrapper > div:empty {
+  display: none !important;
+}
+
+.comment-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  z-index: 9999;
+}
+
+.comment-overlay {
+  position: absolute;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.comment-box {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  width: 320px;
+  max-height: 400px;
+  padding: 16px;
+  border-radius: 10px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.comment-close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-size: 20px;
+  font-weight: bold;
+  color: #555;
+  cursor: pointer;
+}
+
+.comment-box p {
+  margin: 8px 0;
+}
+
+
+.image-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  z-index: 9998;
+}
+
+.image-overlay {
+  position: absolute;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  cursor: zoom-out;
+}
+
+.image-modal-content {
+  position: absolute;
+  max-width: 80%;
+  max-height: 80%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+
+  
+
+  </style>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCR9FJ2vz8-2hwK3CObOUDKM3lWcHsDfIQ",
+      authDomain: "touch-gallery-71383.firebaseapp.com",
+      projectId: "touch-gallery-71383",
+      storageBucket: "touch-gallery-71383.appspot.com",
+      messagingSenderId: "716558645289",
+      appId: "1:716558645289:web:df819fc86de7a3050b0438",
+      measurementId: "G-YP67MYT3Y0"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let imageUrls = [];
+    let pageIndex = 0;
+
+    // 使用 onSnapshot 監聽 Firestore 資料變動，確保圖片新增時自動更新
+    document.addEventListener("DOMContentLoaded", () => {
+
+      db.collection("images").onSnapshot(snapshot => {
+        imageUrls = snapshot.docs
+          .map(doc => doc.data().url)
+          .filter(url => typeof url === "string" && url.startsWith("http"));
+        console.log("目前讀取圖片：", imageUrls);
+        updatePage();
+      });
+    });
+
+    function openImageModal(url) {
+  const modal = document.getElementById("image-modal");
+  const img = document.getElementById("image-modal-img");
+  img.src = url;
+  modal.style.display = "block";
+}
+
+function closeImageModal() {
+  document.getElementById("image-modal").style.display = "none";
+}
+
+
+    function openCommentModal(stampId) {
+  const modal = document.getElementById("comment-modal");
+  const content = document.getElementById("comment-modal-content");
+  modal.style.display = "block";
+  content.innerHTML = "<p>載入中...</p>";
+
+  db.collection("messages")
+    .where("stampId", "==", stampId)
+    .orderBy("timestamp", "asc")
+    .get()
+    .then(snapshot => {
+      if (snapshot.empty) {
+        content.innerHTML = "<p>目前沒有留言</p>";
+        return;
+      }
+      content.innerHTML = "";
+      snapshot.forEach(doc => {
+        const p = document.createElement("p");
+        p.textContent = doc.data().content;
+        content.appendChild(p);
+      });
+    })
+    .catch(err => {
+      content.innerHTML = "<p>讀取留言失敗：" + err.message + "</p>";
+    });
+}
+
+function closeCommentModal() {
+  document.getElementById("comment-modal").style.display = "none";
+}
+
+
+    function createCard(imageUrl) {
+      const card = document.createElement("div");
+      card.className = "stamp-card";
+      if (imageUrl) {
+        const img = document.createElement("img");
+        img.src = imageUrl;
+        img.alt = "stamp";
+        img.className = "stamped";
+        img.style.cursor = "zoom-in";
+        img.addEventListener("click", () => openImageModal(imageUrl));
+
+        card.appendChild(img);
+      }
+      return card;
+    }
+
+    function wrapCardWithLike(card, imageUrl) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "card-wrapper";
+      wrapper.style.display = "flex";
+      wrapper.style.flexDirection = "column";
+      wrapper.style.alignItems = "center";
+
+      const likeContainer = document.createElement("div");
+      likeContainer.className = "like-container";
+
+      const likeBtn = document.createElement("button");
+      likeBtn.className = "like-btn";
+      likeBtn.innerHTML = '<img src="heart.png" alt="heart" class="heart-icon">';
+
+      const likeCount = document.createElement("span");
+      likeCount.className = "like-count";
+      likeCount.textContent = "0";
+
+      // 從 Firestore 讀取讚數
+      db.collection("likes").doc(encodeURIComponent(imageUrl)).get().then(doc => {
+        if (doc.exists && typeof doc.data().count === "number") {
+          likeCount.textContent = doc.data().count;
+        }
+      });
+
+      likeBtn.addEventListener("click", () => {
+        let interactions = parseInt(localStorage.getItem("interactions")) || 0;
+localStorage.setItem("interactions", interactions + 1);
+        const newCount = parseInt(likeCount.textContent) + 1;
+      likeCount.textContent = newCount;
+        db.collection("likes").doc(encodeURIComponent(imageUrl)).set({ count: newCount });
+      });
+
+      likeContainer.appendChild(likeBtn);
+      likeContainer.appendChild(likeCount);
+
+      wrapper.appendChild(card);
+      wrapper.appendChild(likeContainer);
+      // 清除空白區塊（常見是無用的圓角白框）
+Array.from(wrapper.querySelectorAll('div')).forEach(el => {
+  if (
+    el.children.length === 0 &&
+    el.textContent.trim() === "" &&
+    getComputedStyle(el).backgroundColor === 'rgba(255, 255, 255, 0.6)'
+  ) {
+    el.remove();
+  }
+});
+
+      // ======= 插入留言區域 =======
+      // 保留較新的 .message-box 與留言欄設計，並確保 Firestore 互動與留言功能
+    
+      const messageInputArea = document.createElement("div");
+messageInputArea.className = "message-input-area";
+messageInputArea.innerHTML = `
+  <textarea id="message-input-${encodeURIComponent(imageUrl)}" placeholder="寫下你的留言..." style="width: 100%; border-radius: 6px; background-color: #f4f4f4;"></textarea>
+  <div class="message-actions" style="margin-top: 6px; display: flex; gap: 8px;">
+    <button class="show-comments-btn" onclick="openCommentModal('${encodeURIComponent(imageUrl)}')">顯示所有留言</button>
+    <button onclick="sendMessage('${encodeURIComponent(imageUrl)}')">送出</button>
+  </div>
+`;
+wrapper.appendChild(messageInputArea);
+
+
+
+
+
+const expandedCommentList = document.createElement("div");
+expandedCommentList.className = "expanded-comments";
+expandedCommentList.id = `expanded-comments-${encodeURIComponent(imageUrl)}`;
+wrapper.appendChild(expandedCommentList);
+
+      loadMessages(encodeURIComponent(imageUrl));
+      // ===========================
+
+      // 移除 wrapper 內所有 input[type="checkbox"]（若有被動態加入）
+      Array.from(wrapper.querySelectorAll('input[type="checkbox"]')).forEach(el => el.remove());
+
+      return wrapper;
+    }
+
+    function updatePage() {
+      const left = document.querySelector(".page.left");
+      const right = document.querySelector(".page.right");
+
+      // 清除左頁內容（卡片、標題、角落圖示、包裹卡片的容器）
+      [".grid-container", ".headline", ".corner-icon", ".card-wrapper"].forEach(selector => {
+        left.querySelectorAll(selector).forEach(el => el.remove());
+      });
+
+      // 徹底重建右頁：只移除現有 grid 容器
+      const existingRightGrid = right.querySelector(".grid-container");
+      if (existingRightGrid) right.removeChild(existingRightGrid);
+
+      left.style.backgroundImage = `url("left.jpg")`;
+      right.style.backgroundImage = `url("right.jpg")`;
+
+      const leftGrid = document.createElement("div");
+      leftGrid.className = "grid-container";
+      for (let i = 0; i < 4; i++) {
+        const leftIndex = pageIndex * 8 + i;
+        if (leftIndex < imageUrls.length) {
+          leftGrid.appendChild(wrapCardWithLike(createCard(imageUrls[leftIndex]), imageUrls[leftIndex]));
+        }
+      }
+
+      const headline = document.createElement("div");
+      headline.className = "headline";
+      headline.innerHTML = `<img src="title-stamp.png" alt="stamp" class="headline-icon left">WHAT WAS YOUR CHILDHOOD DREAM? &nbsp;&nbsp; LET US HELP YOU ACHIEVE IT.<img src="ped.png" alt="ped" class="headline-icon right">`;
+      left.appendChild(headline);
+
+      const corner = document.createElement("img");
+      corner.src = "corner-icon.png";
+      corner.className = "corner-icon";
+
+      left.appendChild(leftGrid);
+      left.appendChild(corner);
+
+      // 重新建立右頁 grid
+      const rightGrid = document.createElement("div");
+      rightGrid.className = "grid-container";
+
+      for (let i = 0; i < 4; i++) {
+        const rightIndex = pageIndex * 8 + 4 + i;
+        const card = (rightIndex < imageUrls.length)
+          ? wrapCardWithLike(createCard(imageUrls[rightIndex]), imageUrls[rightIndex])
+          : document.createElement("div");
+        card.classList.add("empty-card");
+        rightGrid.appendChild(card);
+      }
+      right.appendChild(rightGrid);
+
+      // 插入固定元件
+      const centerBottom = document.createElement("img");
+      centerBottom.src = "center-bottom-icon.png";
+      centerBottom.className = "center-bottom-icon";
+      right.appendChild(centerBottom);
+
+      const logo = document.createElement("img");
+      logo.src = "logo-stamped.png";
+      logo.className = "logo-stamped";
+      right.appendChild(logo);
+
+      // 額外為手機產生全部卡片
+      const mobileContainer = document.getElementById("mobile-container");
+      if (window.innerWidth <= 768 && mobileContainer) {
+        mobileContainer.innerHTML = "";
+        imageUrls.forEach(url => {
+          const wrapped = wrapCardWithLike(createCard(url), url);
+          mobileContainer.appendChild(wrapped);
+        });
+      }
+    }
+
+    function flipNext() {
+      const maxPages = Math.ceil(imageUrls.length / 8);
+      if (pageIndex < maxPages - 1) {
+        pageIndex++;
+        updatePage();
+      }
+    }
+
+    function flipBack() {
+      if (pageIndex > 0) {
+        pageIndex--;
+        updatePage();
+      }
+    }
+    // ====== 留言功能 ======
+    async function sendMessage(stampId) {
+      const input = document.querySelector(`#message-input-${CSS.escape(stampId)}`);
+      const message = input ? input.value.trim() : "";
+      if (message === "") return;
+      console.log("即將送出留言：", message);
+
+      try {
+        await db.collection("messages").add({
+          stampId: stampId,
+          content: message,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        console.log("留言已成功送出");
+        if (input) {
+          input.blur();
+          input.value = "";
+        }
+        
+      } catch (err) {
+        console.error("送出留言失敗：", err);
+        alert("送出留言失敗：" + err.message);
+      }
+    }
+
+    async function loadMessages(stampId) {
+      const containerId = `message-list-${stampId}`;
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      container.innerHTML = "";
+
+      try {
+        const snapshot = await db.collection("messages")
+          .where("stampId", "==", stampId)
+          .orderBy("timestamp", "asc")
+          .get();
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const p = document.createElement("p");
+          p.textContent = data.content;
+          container.appendChild(p);
+        });
+      } catch (err) {
+        console.error("載入留言失敗：", err);
+      }
+
+      async function toggleExpandedComments(stampId) {
+    const panel = document.getElementById("expanded-comments-" + stampId);
+    if (!panel) return;
+
+    if (panel.style.display === "none" || panel.style.display === "") {
+      panel.style.display = "block";
+      panel.innerHTML = "<p>載入中...</p>";
+      try {
+        const snapshot = await db.collection("messages")
+          .where("stampId", "==", stampId)
+          .orderBy("timestamp", "asc")
+          .get();
+
+        if (snapshot.empty) {
+          panel.innerHTML = "<p>目前沒有留言</p>";
+          return;
+        }
+
+        panel.innerHTML = "";
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const p = document.createElement("p");
+          p.textContent = data.content;
+          panel.appendChild(p);
+        });
+      } catch (err) {
+        panel.innerHTML = `<p>讀取失敗：${err.message}</p>`;
+      }
+    } else {
+      panel.style.display = "none";
+    }
+  }
+    }
+    // ======================
+  </script>
+</head>
+<body>
+  <div id="gallery-button">🖼 My Gallery</div>
+<div id="gallery-panel">
+  <div id="gallery-list"></div>
+</div>
+  <div class="book">
+    <div class="page left"></div>
+    <div class="page right" id="rightPage"></div>
+    <button class="btn left-btn" onclick="flipBack()">
+      <span class="arrow">◀</span>
+      SLIDE
+    </button>
+    <button class="btn right-btn" onclick="flipNext()">
+      <span class="arrow">▶</span>
+      SLIDE
+    </button>
+  </div>
+  <div id="mobile-container" class="page"></div>
+
+  <!-- 留言彈窗 -->
+<div id="comment-modal" class="comment-modal">
+  <div class="comment-overlay" onclick="closeCommentModal()"></div>
+  <div class="comment-box">
+    <span class="comment-close" onclick="closeCommentModal()">×</span>
+    <div id="comment-modal-content">
+      <p>載入中...</p>
+    </div>
+  </div>
+</div>
+
+<!-- 放大圖片彈窗 -->
+<div id="image-modal" class="image-modal">
+  <div class="image-overlay" onclick="closeImageModal()"></div>
+  <img id="image-modal-img" class="image-modal-content" src="" alt="放大圖">
+</div>
+
+
+</body>
+</html>
